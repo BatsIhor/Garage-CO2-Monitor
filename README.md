@@ -17,9 +17,9 @@ A smart CO2 monitoring system built with ESP32 and e-Paper display. This device 
 ### Hardware
 - ESP32 Development Board (LILYGO T5 v2.4.1)
 - Sensirion SCD40/SCD41 CO2 Sensor
-- 6.02" E-Paper Display (648x480 pixels)
+- GooDisplay 5.83 Inch GDEY0583T81 E-Paper Display (648x480 pixels)
 - Jumper Wires
-- USB-C Cable for power and programming
+- Micro USB Cable for power and programming
 - Optional: Case for mounting (3D printable)
 
 ### Software
