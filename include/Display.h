@@ -14,11 +14,29 @@ enum DisplayColor {
     COLOR_WHITE = 1   // White background
 };
 
+// Air quality status based on CO2 levels
+enum AirQualityStatus {
+    AIR_EXCELLENT,    // Below 600 ppm
+    AIR_GOOD,         // 600-800 ppm
+    AIR_FAIR,         // 800-1000 ppm
+    AIR_POOR,         // 1000-1500 ppm
+    AIR_UNHEALTHY     // Above 1500 ppm
+};
+
 // Structure to hold sensor data
 struct SensorData {
   uint16_t co2;
   float temperature;
   float humidity;
+};
+
+// Structure to hold historical data for mini charts
+struct HistoricalData {
+  uint16_t co2[12];    // Last 12 CO2 readings
+  float temp[12];      // Last 12 temperature readings
+  float humidity[12];  // Last 12 humidity readings
+  int count;           // Number of valid readings (up to 12)
+  int index;           // Current index in circular buffer
 };
 
 class Display : public Adafruit_GFX {
@@ -42,6 +60,9 @@ public:
   
   // Display connection instructions when sensor is not connected
   void showConnectionInstructions();
+  
+  // Display loading screen during device startup
+  void showLoadingScreen();
   
   // GFX drawing functions
   void drawPixel(int16_t x, int16_t y, uint16_t color);
@@ -84,6 +105,20 @@ private:
   
   // Helper methods
   void drawBarChart(const uint16_t* co2History, int historyIndex);
+  void drawMiniChart(int x, int y, int width, int height, const float* data, int count, int index, float min, float max, uint16_t color);
+  void drawCO2MiniChart(int x, int y, int width, int height, const uint16_t* data, int count, int index, uint16_t color);
+  void drawCO2Value(uint16_t co2Value, int x, int y);
+  void drawTemperatureValue(float temperature, int x, int y);
+  void drawHumidityValue(float humidity, int x, int y);
+  const char* getAirQualityMessage(uint16_t co2Value);
+  
+  // Draw large digit at x,y position with given width and height
+  void drawLargeDigit(uint8_t digit, int16_t x, int16_t y, int16_t width, int16_t height, uint16_t color);
+  
+  // Draw large number with specified parameters
+  void drawLargeNumber(uint16_t number, int16_t x, int16_t y, int16_t digitWidth, 
+                      int16_t digitHeight, int16_t spacing, uint16_t color);
+  
   void setCursor(int16_t x, int16_t y);
   void setTextColor(uint16_t color);
   void setFont(const GFXfont* font);

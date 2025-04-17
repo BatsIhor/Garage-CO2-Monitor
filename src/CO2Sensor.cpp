@@ -44,8 +44,8 @@ bool CO2Sensor::begin() {
   }
   
   // Allow time for the sensor to initialize and take first measurements
-  Serial.println("Waiting for sensor to initialize (15 seconds)...");
-  for (int i = 0; i < 15; i++) {
+  Serial.println("Waiting for sensor to initialize (7 seconds)...");
+  for (int i = 0; i < 7; i++) {
     Serial.print(".");
     delay(1000);
   }

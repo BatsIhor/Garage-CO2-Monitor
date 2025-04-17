@@ -31,6 +31,13 @@ CO2Sensor* co2Sensor = nullptr;       // Our CO2 sensor object
 SensorData currentData = {400, 20.0, 50.0};     // Default values
 SensorData lastDisplayedData = {0, 0.0, 0.0};   // Last displayed values
 uint16_t co2History[DATA_HISTORY_SIZE] = {0};   // History array for CO2 values
+
+// Add history for temperature and humidity (last 12 readings)
+float temperatureHistory[12] = {0};
+float humidityHistory[12] = {0};
+int miniHistoryIndex = 0;
+int miniHistoryCount = 0;
+
 int historyIndex = 0;                           // Current index in history array
 unsigned long lastFullUpdateTime = 0;           // Time of last full display update
 unsigned long lastDataUpdateTime = 0;           // Time of last data collection
@@ -78,23 +85,38 @@ void setup() {
   }
   Serial.println("Display initialized successfully");
   
+  // Show loading screen - this causes a single display update
+  display->showLoadingScreen();
+  
   // Initialize CO2 sensor
   Serial.println("Initializing CO2 sensor...");
   co2Sensor = new CO2Sensor(CO2_ALARM_THRESHOLD);
   bool sensorInitialized = co2Sensor->begin();
   Serial.println("Sensor initialization complete. Connected: " + String(sensorInitialized ? "YES" : "NO"));
   
-  // First full display update
-  Serial.println("Performing first display update...");
+  // Get initial sensor data
   currentData = co2Sensor->getData();  // Get initial data from sensor
-  updateDisplay(true);
-  Serial.println("Display updated");
   
-  // Initialize history array with zeros (no data yet)
+  // Initialize history arrays with initial values
+  for (int i = 0; i < 12; i++) {
+    temperatureHistory[i] = currentData.temperature;
+    humidityHistory[i] = currentData.humidity;
+  }
+  
+  // Set initial history count to ensure charts display correctly
+  miniHistoryCount = 1; // At least one value in the history
+  
+  // Initialize CO2 history array with zeros
   Serial.println("Initializing history array...");
   for (int i = 0; i < DATA_HISTORY_SIZE; i++) {
     co2History[i] = 0;  // Start with no data
   }
+  
+  // Do a single final update with all data
+  Serial.println("Performing first display update...");
+  updateDisplay(true);
+  Serial.println("Display updated");
+  
   Serial.println("Setup complete");
 }
 
@@ -150,11 +172,16 @@ void loop() {
   // Update history every 5 minutes (only if sensor is connected) - changed from 30 minutes for faster testing
   if (co2Sensor->isConnected() && co2Sensor->getValidReadingCount() >= 3 && 
       currentTime - lastHistoryUpdateTime >= 300000) {
+    // Update history with current data
     updateHistory();
     lastHistoryUpdateTime = currentTime;
     
-    // Partial update for bar chart only
-    updateDisplay(false);
+    // Perform a full update to keep chart and values in sync
+    updateDisplay(true);
+    lastDisplayedData = currentData;
+    lastFullUpdateTime = currentTime;
+    
+    Serial.println("Chart updated - full display refresh to keep values in sync");
   }
   
   // Force full refresh every 6 hours to prevent ghosting
@@ -178,9 +205,15 @@ void updateDisplay(bool fullUpdate) {
   }
   
   if (fullUpdate) {
+    // Pass current data and history arrays to display
     display->updateFull(currentData, co2History, historyIndex, co2Sensor->isConnected());
+    
+    // Update last displayed data
+    lastDisplayedData = currentData;
+    Serial.println("Full display update completed");
   } else {
     display->updateChart(co2History, historyIndex);
+    Serial.println("Chart-only update completed");
   }
 }
 
@@ -188,9 +221,19 @@ void updateHistory() {
   // Only add to history if we have collected at least 3 valid readings
   // This ensures the sensor has stabilized before recording data
   if (co2Sensor->getValidReadingCount() >= 3) {
-    // Add current CO2 value to history
+    // Add current CO2 value to main history
     co2History[historyIndex] = currentData.co2;
     historyIndex = (historyIndex + 1) % DATA_HISTORY_SIZE;
+    
+    // Update mini history for temperature and humidity
+    temperatureHistory[miniHistoryIndex] = currentData.temperature;
+    humidityHistory[miniHistoryIndex] = currentData.humidity;
+    miniHistoryIndex = (miniHistoryIndex + 1) % 12;
+    
+    // Increment mini history count if not at max
+    if (miniHistoryCount < 12) {
+      miniHistoryCount++;
+    }
     
     Serial.println("Updated CO2 history");
     Serial.print("Current index: ");
